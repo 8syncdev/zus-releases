@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/brand/n1_interlock.svg" alt="8 Sync" width="72">
+<img src="assets/brand/zus_mark_gradient.svg" alt="ZUS" width="84">
 
 # ZUS
 
@@ -122,7 +122,7 @@ Cài 1 lần là xong — app tự kiểm tra `latest.json` ở release mới nh
 
 <div align="center">
 
-<img src="assets/brand/n1_interlock_mono.svg" alt="8" width="28">
+<img src="assets/brand/n1_interlock.svg" alt="8 Sync" width="26">
 
 **8 Sync Dev** — Nguyễn Phương Anh Tú (Alex Dev / Kevin Nguyễn) · [8syncdev.com](https://8syncdev.com) · atus@8syncdev.com
 *Sync is a loop — two systems, one link.*
