@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/brand/zus_mark_gradient.svg" alt="ZUS" width="84">
+<img src="assets/brand/zus_mark.svg" alt="ZUS" width="84">
 
 # ZUS
 
