@@ -14,7 +14,7 @@
 
 *English below · [Tiếng Việt bên dưới](#-tiếng-việt)*
 
-<img src="assets/editor-agent-chat.webp" alt="ZUS — editor with AI chat panel" width="880">
+<img src="assets/editor-agent-chat.jpg" alt="ZUS — editor with AI chat panel" width="880">
 
 </div>
 
@@ -32,7 +32,7 @@ This repository is the **official distribution hub** for ZUS by [8 Sync Dev](htt
 - **Familiar** — full VS Code workbench: Monaco editor, terminal, Git graph, search, and extensions via Open VSX.
 
 <div align="center">
-<img src="assets/agent-conversations.jpg" alt="AI agent conversations" width="430"> <img src="assets/dashboard-settings-themes.webp" alt="Themes and autonomy settings" width="430">
+<img src="assets/agent-conversations.jpg" alt="AI agent conversations" width="430"> <img src="assets/dashboard-settings-themes.jpg" alt="Themes and autonomy settings" width="430">
 </div>
 
 ### Install
