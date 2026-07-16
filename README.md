@@ -1,12 +1,16 @@
 <div align="center">
 
+<img src="assets/brand/n1_interlock.svg" alt="8 Sync" width="72">
+
 # ZUS
 
 **A fast, lightweight AI IDE — the full VS Code workbench with a built-in AI agent, in a ~22 MB installer.**
 
-[![Latest release](https://img.shields.io/github/v/release/8syncdev/zus-releases?label=latest&color=a6e22e)](https://github.com/8syncdev/zus-releases/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/8syncdev/zus-releases/total?color=a6e22e)](https://github.com/8syncdev/zus-releases/releases)
-![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-333)
+[![Latest release](https://img.shields.io/github/v/release/8syncdev/zus-releases?label=latest&color=4F7CFF)](https://github.com/8syncdev/zus-releases/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/8syncdev/zus-releases/total?color=22D3EE)](https://github.com/8syncdev/zus-releases/releases)
+![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0A0A0B)
+
+*by [8 Sync Dev](https://8syncdev.com) — sync is a loop: two systems, one link.*
 
 *English below · [Tiếng Việt bên dưới](#-tiếng-việt)*
 
@@ -18,7 +22,7 @@
 
 ## 🇬🇧 English
 
-This repository is the **official distribution hub** for ZUS by [Siden Technologies / 8 Sync Dev](https://github.com/8syncdev): release binaries, checksums, and the auto-update manifest. Source code is developed in a private repository — every public build lands here.
+This repository is the **official distribution hub** for ZUS by [8 Sync Dev](https://8syncdev.com) ([@8syncdev](https://github.com/8syncdev)): release binaries, checksums, and the auto-update manifest. Source code is developed in a private repository — every public build lands here.
 
 ### Why ZUS
 
@@ -118,6 +122,9 @@ Cài 1 lần là xong — app tự kiểm tra `latest.json` ở release mới nh
 
 <div align="center">
 
-**8 Sync Dev** — Nguyễn Phương Anh Tú (Alex Dev / Kevin Nguyễn) · atus@8syncdev.com
+<img src="assets/brand/n1_interlock_mono.svg" alt="8" width="28">
+
+**8 Sync Dev** — Nguyễn Phương Anh Tú (Alex Dev / Kevin Nguyễn) · [8syncdev.com](https://8syncdev.com) · atus@8syncdev.com
+*Sync is a loop — two systems, one link.*
 
 </div>
