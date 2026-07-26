@@ -68,7 +68,17 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf rpm
+      # `pnpm/action-setup` tự dò `packageManager` trong package.json — nhưng cơ chế đó VỠ trên
+      # runner GitHub-hosted sau khi Node 20 bị khai tử (action v4 bị ép chạy Node 24) và báo
+      # "No pnpm version is specified" dù field có thật. Tự đọc rồi truyền thẳng: vẫn đúng 1
+      # nguồn sự thật (package.json), nhưng không phụ thuộc phần dò của action.
+      - name: pnpm version từ packageManager
+        id: pm
+        shell: bash
+        run: echo "version=$(node -p "require('./package.json').packageManager.split('@')[1]")" >> "$GITHUB_OUTPUT"
       - uses: pnpm/action-setup@v4 # v6 self-installer crash với pnpm 11.12.0
+        with:
+          version: ${{ steps.pm.outputs.version }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
