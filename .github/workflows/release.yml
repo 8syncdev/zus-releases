@@ -30,6 +30,9 @@ on:
         description: 'Chỉ verify wiring (checkout deploy key + version gate) — KHÔNG build, KHÔNG đụng release'
         type: boolean
         default: false
+      ref:
+        description: 'Commit-ish để build (mặc định = tag). Đặt `main` để thử wiring trước khi tag tồn tại.'
+        default: ''
 permissions:
   contents: write
 jobs:
@@ -60,7 +63,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: 8syncdev/zus
-          ref: ${{ inputs.tag }}
+          ref: ${{ inputs.ref || inputs.tag }}
           ssh-key: ${{ secrets.ZUS_SRC_DEPLOY_KEY }}
           persist-credentials: false
       - name: Install Linux deps
@@ -68,14 +71,19 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf rpm
-      # `pnpm/action-setup` tự dò `packageManager` trong package.json — nhưng cơ chế đó VỠ trên
-      # runner GitHub-hosted sau khi Node 20 bị khai tử (action v4 bị ép chạy Node 24) và báo
-      # "No pnpm version is specified" dù field có thật. Tự đọc rồi truyền thẳng: vẫn đúng 1
-      # nguồn sự thật (package.json), nhưng không phụ thuộc phần dò của action.
+      # Tự đọc `packageManager` rồi truyền thẳng cho action: vẫn đúng 1 nguồn sự thật
+      # (package.json), nhưng không phụ thuộc cơ chế dò của `pnpm/action-setup` — cơ chế đó báo
+      # "No pnpm version is specified" một cách mơ hồ khi field vắng mặt (vd tag cũ trước r41).
       - name: pnpm version từ packageManager
         id: pm
         shell: bash
-        run: echo "version=$(node -p "require('./package.json').packageManager.split('@')[1]")" >> "$GITHUB_OUTPUT"
+        run: |
+          set -euo pipefail
+          # KHÔNG viết `echo "v=$(node …)"`: lệnh trong $() fail thì `echo` vẫn exit 0 ⇒ output
+          # rỗng và lỗi thật lòi ra tận step sau dưới dạng thông báo lạc đề.
+          v=$(node -p "require('./package.json').packageManager?.split('@')[1] ?? ''")
+          [ -n "$v" ] || { echo "::error::package.json thiếu field packageManager — không suy ra được phiên bản pnpm"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
       - uses: pnpm/action-setup@v4 # v6 self-installer crash với pnpm 11.12.0
         with:
           version: ${{ steps.pm.outputs.version }}
@@ -134,7 +142,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           repository: 8syncdev/zus
-          ref: ${{ inputs.tag }}
+          ref: ${{ inputs.ref || inputs.tag }}
           ssh-key: ${{ secrets.ZUS_SRC_DEPLOY_KEY }}
           persist-credentials: false
       - uses: actions/setup-node@v4
