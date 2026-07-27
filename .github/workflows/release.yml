@@ -1,20 +1,22 @@
-name: Build & Publish ZUS
-# Build + phát hành ZUS ngay TẠI repo public này.
+name: Build ZUS (chặng 1 — build, chưa ký thật)
+# CHẶNG 1 của pipeline 2 chặng. Build 3 OS ngay tại repo public này rồi upload lên release.
+# Chặng 2 (`.github/workflows/sign.yml` bên repo PRIVATE 8syncdev/zus) tải về, ký bằng khoá
+# THẬT, dựng + ký `latest.json`, rồi đẩy ngược lên đây.
 #
-# Vì sao ở đây chứ không ở repo source `8syncdev/zus`:
-#   Doc GitHub — "Actions usage is free for self-hosted runners and for public repositories".
-#   Repo private tính phút (macOS $0.062/′ ≈ 10× Linux ⇒ 1 lần release = 22% định mức Free/tháng);
-#   repo public MIỄN PHÍ không giới hạn, kể cả macOS. Cùng runner, cùng workflow, khác hoá đơn.
+# Vì sao tách 2 chặng:
+#   - Build tốn phút. Doc GitHub: "Actions usage is free for … public repositories" ⇒ chạy ở đây
+#     là $0, kể cả macOS ($0.062/′ ≈ 10× Linux trên repo private — 1 release = 22% định mức Free).
+#   - Ký thì KHÔNG tốn gì, nhưng cần khoá bí mật. Khoá ký auto-update là thứ nguy hiểm nhất trong
+#     dự án: lộ = ký được bản cập nhật độc cho MỌI user. Nên nó ở nguyên secret của repo private,
+#     KHÔNG copy sang đây.
 #
 # Source private KHÔNG bị lộ:
-#   - Checkout bằng **deploy key read-only, scope đúng repo `8syncdev/zus`** (không phải PAT toàn
-#     account). Source chỉ nằm trên runner tạm rồi bị huỷ; repo này không hề chứa source.
-#   - Chỗ lộ duy nhất về lý thuyết là log build công khai (rustc/tsc in code frame khi biên dịch
-#     lỗi). Đã bịt từ gốc: codebase có **0 khối `cfg(target_os = "windows"/"macos")`** nên Rust
-#     biên dịch giống hệt mọi OS, và `scripts/release.sh` chạy `gate.sh all` + `gate.sh build`
-#     (bundle vite thật) ở LOCAL trước khi tag ⇒ tới đây chỉ còn build xanh. Log lúc xanh chỉ có
-#     tên crate + tên chunk — thứ vốn đã nằm trong AppImage phát hành công khai.
-#   - `workflow_dispatch` là trigger DUY NHẤT: fork/PR không bao giờ chạm được secret.
+#   - Checkout bằng **deploy key read-only scope đúng `8syncdev/zus`** (không phải PAT toàn
+#     account). Source chỉ nằm trên runner tạm rồi bị huỷ; repo này không chứa source.
+#   - Log build công khai chỉ in code khi BIÊN DỊCH LỖI. Đã chặn từ gốc: codebase có 0 khối
+#     `cfg(target_os = "windows"/"macos")` (Rust biên dịch giống hệt mọi OS) và `scripts/release.sh`
+#     chạy `gate.sh all` + `gate.sh build` (bundle vite thật) ở LOCAL trước khi tag.
+#   - `workflow_dispatch` là trigger DUY NHẤT ⇒ fork/PR không bao giờ chạm được secret.
 on:
   workflow_dispatch:
     inputs:
@@ -27,7 +29,7 @@ on:
         options: [all, linux]
         default: all
       dry_run:
-        description: 'Chỉ verify wiring (checkout deploy key + version gate) — KHÔNG build, KHÔNG đụng release'
+        description: 'Chỉ verify wiring (checkout + version gate) — KHÔNG build, KHÔNG đụng release'
         type: boolean
         default: false
       ref:
@@ -40,18 +42,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Ma trận phải dựng bằng `fromJSON` chứ không lọc bằng `if` cấp job: context `matrix`
-        # KHÔNG khả dụng ở `jobs.<id>.if` (actionlint bắt được — chỉ có github/inputs/needs/vars).
-        # Ghi chú từng entry:
+        # Phải dựng bằng `fromJSON` chứ không lọc bằng `if` cấp job: context `matrix` KHÔNG khả
+        # dụng ở `jobs.<id>.if` (chỉ có github/inputs/needs/vars).
         # - ubuntu-24.04: ort-sys (ONNX prebuilt, dep zus-index) đòi glibc ≥2.38 ⇒ sàn glibc của
-        #   installer là ràng buộc từ DEP, không phải lựa chọn runner. Build trên distro mới hơn
-        #   (vd Arch glibc 2.43) ra installer chết trên gần như mọi user.
-        # - macos: aarch64-only vì ort-sys 2.0.0-rc.12 KHÔNG có prebuilt x86_64-apple-darwin
-        #   (build/download/dist.txt) ⇒ universal build fail nửa x86_64.
+        #   installer là ràng buộc từ DEP. Build trên distro mới hơn (vd Arch glibc 2.43) ra
+        #   installer chết trên gần như mọi user.
+        # - macos: aarch64-only vì ort-sys 2.0.0-rc.12 KHÔNG có prebuilt x86_64-apple-darwin.
         include: ${{ inputs.platforms == 'linux' && fromJSON('[{"platform":"ubuntu-24.04","args":"--bundles deb,rpm,appimage","rust-targets":""}]') || fromJSON('[{"platform":"ubuntu-24.04","args":"--bundles deb,rpm,appimage","rust-targets":""},{"platform":"macos-latest","args":"--target aarch64-apple-darwin --bundles app,dmg","rust-targets":"aarch64-apple-darwin"},{"platform":"windows-latest","args":"--bundles nsis","rust-targets":""}]') }}
     runs-on: ${{ matrix.platform }}
     env:
       # Ký số Windows (Azure Trusted Signing) — tự kích hoạt khi set đủ 6 secrets; thiếu = skip.
+      # Khác hoàn toàn khoá updater: đây là code-signing chống SmartScreen, không ký bản cập nhật.
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -82,7 +83,7 @@ jobs:
           # KHÔNG viết `echo "v=$(node …)"`: lệnh trong $() fail thì `echo` vẫn exit 0 ⇒ output
           # rỗng và lỗi thật lòi ra tận step sau dưới dạng thông báo lạc đề.
           v=$(node -p "require('./package.json').packageManager?.split('@')[1] ?? ''")
-          [ -n "$v" ] || { echo "::error::package.json thiếu field packageManager — không suy ra được phiên bản pnpm"; exit 1; }
+          [ -n "$v" ] || { echo "::error::package.json thiếu field packageManager"; exit 1; }
           echo "version=$v" >> "$GITHUB_OUTPUT"
       - uses: pnpm/action-setup@v4 # v6 self-installer crash với pnpm 11.12.0
         with:
@@ -104,6 +105,25 @@ jobs:
       - name: Version phải khớp tag
         shell: bash
         run: bash scripts/gate.sh version "${{ inputs.tag }}"
+      # KHOÁ RÁC — cố ý. `tauri.conf.json` có `plugins.updater.pubkey` nên tauri-cli BẮT BUỘC phải
+      # có private key, nếu không thì `sign_updaters()` fail cứng exit 1 SAU khi artifact đã ghi
+      # xong đĩa ("A public key has been found, but no private key" — tauri-cli/src/bundle.rs:277).
+      # Khoá rác làm build exit 0; nó chỉ đẻ ra `.sig` VÔ GIÁ TRỊ, sẽ bị chặng 2 ghi đè bằng khoá
+      # thật. Keynum lệch pubkey chỉ là `log::warn!` (bundle.rs:304), KHÔNG phải lỗi.
+      # KHÔNG dùng `--no-sign` thay thế: trên macOS nó tắt luôn ad-hoc codesign của `.app`
+      # (tauri-bundler macos/app.rs:115) ⇒ app arm64 không chạy được.
+      - name: Khoá ký RÁC cho chặng 1 (khoá thật ở repo private)
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec tauri signer generate -w "$RUNNER_TEMP/throwaway.key" -f --password ""
+          {
+            echo "TAURI_SIGNING_PRIVATE_KEY<<__EOF__"
+            cat "$RUNNER_TEMP/throwaway.key"
+            echo "__EOF__"
+            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD="
+          } >> "$GITHUB_ENV"
       - name: Install trusted-signing-cli (Windows signing)
         if: matrix.platform == 'windows-latest' && env.AZURE_CLIENT_ID != ''
         run: cargo install trusted-signing-cli --locked
@@ -114,90 +134,20 @@ jobs:
           printf '{"bundle":{"windows":{"signCommand":"trusted-signing-cli -e %s -a %s -c %s %%1"}}}' \
             "$AZURE_TS_ENDPOINT" "$AZURE_TS_ACCOUNT" "$AZURE_TS_PROFILE" > src-tauri/windows-sign.conf.json
           echo "ZUS_SIGN_ARGS=--config src-tauri/windows-sign.conf.json" >> "$GITHUB_ENV"
-      # Chạy TRONG repo public ⇒ release + `latest.json` sinh ra đã trỏ thẳng zus-releases.
-      # Bỏ được hẳn bước `sed` rewrite URL + ký lại + mirror của pipeline cũ — mắt xích mong
-      # manh nhất (ký trước sed thì chữ ký vô hiệu, ký sau sed thì phải mirror rồi mới ký).
       - uses: tauri-apps/tauri-action@v0
         if: ${{ !inputs.dry_run }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPIMAGE_EXTRACT_AND_RUN: '1'
         with:
           tagName: ${{ inputs.tag }}
           releaseName: 'ZUS ${{ inputs.tag }}'
           releaseBody: 'See install & verify instructions in the [README](https://github.com/8syncdev/zus-releases#install). Verify downloads with SHA256SUMS.txt.'
-          releaseDraft: false
+          # Release để DRAFT tới khi chặng 2 ký xong: manifest lúc này còn mang chữ ký RÁC, publish
+          # ra là updater của user fail-closed từ chối ⇒ kênh cập nhật chết im lặng.
+          releaseDraft: true
           prerelease: false
+          # `latest.json` do chặng 2 dựng (gộp cả 3 OS rồi ký MỘT lần bằng khoá thật). Để
+          # tauri-action sinh bản mang chữ ký rác ở đây chỉ tổ gây nhầm.
+          includeUpdaterJson: false
           args: ${{ matrix.args }} ${{ env.ZUS_SIGN_ARGS }}
-
-  finalize:
-    needs: build
-    if: ${{ inputs.platforms == 'all' && !inputs.dry_run }}
-    runs-on: ubuntu-24.04
-    steps:
-      # Cần source để đọc ĐÚNG `plugins.updater.pubkey` mà bản build này ship — bước verify dưới
-      # so chữ ký với chính khoá đó.
-      - uses: actions/checkout@v5
-        with:
-          repository: 8syncdev/zus
-          ref: ${{ inputs.ref || inputs.tag }}
-          ssh-key: ${{ secrets.ZUS_SRC_DEPLOY_KEY }}
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Tải asset của release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mkdir dl
-          gh release download "${{ inputs.tag }}" --repo "$GITHUB_REPOSITORY" --dir dl
-      # Updater native tải `<endpoint>.sig` rồi verify bằng pubkey biên dịch trong app. Không ký
-      # = MITM serve manifest giả (version 999 trỏ artifact cũ có sig thật) → rollback attack.
-      # Thiếu khoá ⇒ FAIL job, KHÔNG âm thầm publish manifest trần (client fail-closed sẽ từ chối
-      # ⇒ cả kênh update chết im lặng, biết ngay ở đây tốt hơn).
-      - name: Ký latest.json (minisign)
-        working-directory: dl
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
-            echo "::error::Thiếu secret TAURI_SIGNING_PRIVATE_KEY — updater fail-closed sẽ không cập nhật được."
-            exit 1
-          fi
-          rm -f latest.json.sig
-          # -k = khoá dạng CHUỖI (-f là đường dẫn FILE). </dev/null chặn prompt treo; sai password
-          # thì signer tự exit 1 ("Wrong password for that key").
-          npx --yes @tauri-apps/cli@2.11.4 signer sign \
-            -k "$TAURI_SIGNING_PRIVATE_KEY" -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" \
-            latest.json < /dev/null
-          test -s latest.json.sig || { echo "::error::latest.json.sig rỗng sau khi ký"; exit 1; }
-      # Khoá ký lệch pubkey (rotate key mà quên bump app) vẫn publish trót lọt, rồi MỌI client
-      # fail-closed từ chối manifest ⇒ kênh update chết im lặng tới tận release sau.
-      - name: Verify latest.json.sig bằng pubkey app đang ship
-        run: node scripts/verify-manifest-sig.mjs dl/latest.json dl/latest.json.sig
-      - name: SHA256SUMS.txt + upload
-        working-directory: dl
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          rm -f SHA256SUMS.txt
-          sha256sum ./* > SHA256SUMS.txt
-          cat SHA256SUMS.txt
-          gh release upload "${{ inputs.tag }}" ./* --clobber --repo "$GITHUB_REPOSITORY"
-      # Gate CUỐI: tải đúng URL mà app sẽ gọi rồi verify. Client fail-closed nên `.sig` thiếu/lệch
-      # = kênh cập nhật chết im lặng; đây là thứ duy nhất chứng minh điều đó KHÔNG xảy ra.
-      - name: Gate feed public (tải như app rồi verify)
-        run: |
-          set -euo pipefail
-          base=https://github.com/8syncdev/zus-releases/releases/latest/download
-          mkdir -p feed
-          curl -fsSL "$base/latest.json" -o feed/latest.json
-          curl -fsSL "$base/latest.json.sig" -o feed/latest.json.sig
-          node scripts/verify-manifest-sig.mjs feed/latest.json feed/latest.json.sig
-          node -e 'const m=require("./feed/latest.json");const u=Object.values(m.platforms).map(p=>p.url);const bad=u.find(x=>x.includes("/8syncdev/zus/releases/"));if(bad){console.log("::error::latest.json trỏ repo PRIVATE — user ngoài tải 404: "+bad);process.exit(1)}console.log(`feed public OK: ${m.version} (${u.length} platform)`)'
