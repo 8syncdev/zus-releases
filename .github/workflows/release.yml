@@ -1,4 +1,4 @@
-name: Build ZUS (chặng 1 — build, chưa ký thật)
+name: Build ZUS
 # CHẶNG 1 của pipeline 2 chặng. Build 3 OS ngay tại repo public này rồi upload lên release.
 # Chặng 2 (`.github/workflows/sign.yml` bên repo PRIVATE 8syncdev/zus) tải về, ký bằng khoá
 # THẬT, dựng + ký `latest.json`, rồi đẩy ngược lên đây.
